@@ -1,0 +1,14 @@
+DHT22	GP0	✅
+Датчик почвы (ADC)	GP26 (ADC0)	✅
+Датчик света (ADC)	GP27 (ADC1)	✅
+Датчик CO2 (ADC)	GP28 (ADC2)	✅
+LCD SDA (I2C)	GP4	✅
+LCD SCL (I2C)	GP5	✅
+Реле насоса	GP6	✅
+Шаговик STEP	GP7	✅
+Шаговик DIR	GP8	✅
+Шаговик ENABLE	GP9	✅
+Arducam CS	GP13	✅
+Arducam SCK	GP18 (SPI0 SCK)	✅
+Arducam MOSI	GP19 (SPI0 MOSI)	✅
+Arducam MISO	GP16 (SPI0 MISO)	✅
