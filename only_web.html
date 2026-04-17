@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>smart greenhouse</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #FFFFFF;
+  color: #000000;
+  font-family: 'Arial Narrow', 'Inter', Arial, sans-serif;
+  min-height: 100vh;
+  padding: 40px 20px;
+  text-transform: lowercase;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: clamp(3rem, 12vw, 8rem);
+  font-weight: 900;
+  line-height: 0.9;
+  margin-bottom: 60px;
+  letter-spacing: -0.03em;
+  filter: blur(0.5px);
+  -webkit-filter: blur(0.5px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 60px;
+}
+
+.card {
+  border: 2px solid #000;
+  padding: 15px;
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.card:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+}
+
+.card-label {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-bottom: 5px;
+  font-weight: 400;
+}
+
+.card-value {
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.card-unit {
+  font-size: 0.9rem;
+  opacity: 0.5;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  opacity: 0.6;
+  border-top: 1px solid #000;
+  padding-top: 20px;
+}
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.btn {
+  background: #000;
+  color: #FFF;
+  border: 2px solid #000;
+  padding: 12px 24px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.btn:hover {
+  background: #333;
+  border-color: #333;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #000;
+}
+
+.btn-outline:hover {
+  background: #000;
+  color: #FFF;
+}
+
+.status {
+  font-size: 0.8rem;
+  opacity: 0.4;
+  margin-top: 60px;
+  font-family: monospace;
+}
+
+.highlight {
+  background: #000;
+  color: #FFF;
+  padding: 2px 6px;
+  display: inline-block;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>smart<br>greenhouse</h1>
+  
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">temperature</div>
+      <div class="card-value">24.5</div>
+      <div class="card-unit">°c</div>
+    </div>
+    <div class="card">
+      <div class="card-label">humidity</div>
+      <div class="card-value">65</div>
+      <div class="card-unit">%</div>
+    </div>
+    <div class="card">
+      <div class="card-label">soil moisture</div>
+      <div class="card-value">42</div>
+      <div class="card-unit">%</div>
+    </div>
+    <div class="card">
+      <div class="card-label">light level</div>
+      <div class="card-value">78</div>
+      <div class="card-unit">%</div>
+    </div>
+    <div class="card">
+      <div class="card-label">co2</div>
+      <div class="card-value">520</div>
+      <div class="card-unit">ppm</div>
+    </div>
+    <div class="card">
+      <div class="card-label">ventilation</div>
+      <div class="card-value">30</div>
+      <div class="card-unit">% open</div>
+    </div>
+  </div>
+  
+  <div class="section-title">controls</div>
+  
+  <div class="btn-group">
+    <a href="/pump/toggle" class="btn">pump toggle</a>
+    <a href="/pump/on" class="btn">pump on</a>
+    <a href="/pump/off" class="btn btn-outline">pump off</a>
+  </div>
+  
+  <div class="btn-group">
+    <a href="/vent/open" class="btn">vent open</a>
+    <a href="/vent/50" class="btn btn-outline">vent 50%</a>
+    <a href="/vent/close" class="btn btn-outline">vent close</a>
+  </div>
+  
+  <div class="status">
+    pump: <span class="highlight">off</span> | 
+    mqtt: connected |
+    updated: 12s ago
+  </div>
+</div>
+</body>
+</html>
