@@ -1,0 +1,20 @@
+# Из https://github.com/micropython/micropython-lib
+mpremote install dht
+mpremote install umqtt.simple
+
+# Или скопируйте файлы:
+# - dht.py (для DHT22)
+# - umqtt/simple.py (для MQTT)
+
+Компонент	Пин Pico W	Примечание
+DHT22	GP15	Data пин
+Датчик почвы	GP26 (ADC0)	Аналоговый выход
+Датчик света	GP27 (ADC1)	Аналоговый выход
+CO2 датчик	GP28 (ADC2)	Аналоговый выход
+Реле насоса	GP16	IN пин реле
+Шаговик STEP	GP17	A4988 STEP
+Шаговик DIR	GP18	A4988 DIR
+Шаговик EN	GP19	A4988 ENABLE
+LCD SDA	GP20	I2C данные
+LCD SCL	GP21	I2C clock
+Arducam	SPI	По документации
