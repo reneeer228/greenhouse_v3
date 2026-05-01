@@ -1,0 +1,270 @@
+# ==========================
+# Импорты
+# ==========================
+import network
+import time
+import uasyncio as asyncio
+from machine import Pin, ADC, I2C
+import dht
+from umqtt.simple import MQTTClient
+
+# ==========================
+# Конфигурация
+# ==========================
+# WiFi
+WIFI_SSID = "ВАШ_WIFI_SSID"
+WIFI_PASSWORD = "ВАШ_WIFI_PASSWORD"
+
+# MQTT
+MQTT_BROKER = "broker.hivemq.com"
+MQTT_PORT = 1883
+MQTT_CLIENT_ID = "rpi_pico_w_greenhouse"
+
+# Топики MQTT для обмена данными и командами
+MQTT_TOPICS = {
+    "temperature": "greenhouse/temperature",
+    "humidity": "greenhouse/humidity",
+    "co2": "greenhouse/co2",
+    "soil_moisture": "greenhouse/soil_moisture",
+    "light": "greenhouse/light",
+    "pump_cmd": "greenhouse/pump/cmd",
+    "vent_cmd": "greenhouse/vent/cmd",
+}
+
+# GPIO распиновка
+PIN_DHT22 = 15
+PIN_SOIL_MOISTURE_ADC = 26
+PIN_LIGHT_ADC = 27
+PIN_CO2_ADC = 28
+PIN_RELAY_PUMP = 16
+PIN_RELAY_VENT = 20
+
+# ИКП дисплея (например, I2C LCD)
+I2C_SCL_PIN = 5
+I2C_SDA_PIN = 4
+I2C_ADDR = 0x27  # или 0x3F
+
+# Пороги автоматизации
+SOIL_WATER_LOW = 30      # %
+SOIL_WATER_HIGH = 70     # %
+TEMP_HIGH_THRESHOLD = 30 # °C
+TEMP_LOW_THRESHOLD = 20  # °C
+
+# Время задержки между циклами
+READ_INTERVAL = 30  # секунд
+
+# ==========================
+# Классы и функции
+# ==========================
+
+class WiFi:
+    """Класс для подключения к WiFi"""
+    def __init__(self, ssid, password):
+        self.ssid = ssid
+        self.password = password
+        self.station = network.WLAN(network.STA_IF)
+
+    def connect(self):
+        print("Подключение к WiFi...")
+        self.station.active(True)
+        self.station.connect(self.ssid, self.password)
+        while not self.station.isconnected():
+            print(".", end="")
+            time.sleep(1)
+        print(f"\nПодключено: {self.station.ifconfig()}")
+
+
+class MQTTManager:
+    """Класс для управления MQTT соединением и публикацией данных"""
+    def __init__(self, broker, port, client_id):
+        self.client = MQTTClient(client_id, broker, port)
+        self.connected = False
+
+    def connect(self):
+        try:
+            self.client.connect()
+            self.connected = True
+            print("MQTT подключено")
+        except Exception as e:
+            print(f"Ошибка MQTT: {e}")
+            self.connected = False
+
+    def publish(self, topic, msg):
+        if self.connected:
+            try:
+                self.client.publish(topic, str(msg))
+            except Exception as e:
+                print(f"Ошибка публикации: {e}")
+
+    def subscribe(self, topic, callback):
+        if self.connected:
+            try:
+                self.client.set_callback(callback)
+                self.client.subscribe(topic)
+            except Exception as e:
+                print(f"Ошибка подписки: {e}")
+
+    def check(self):
+        if self.connected:
+            try:
+                self.client.check_msg()
+            except Exception as e:
+                print(f"Ошибка проверки сообщений: {e}")
+
+    def disconnect(self):
+        if self.connected:
+            try:
+                self.client.disconnect()
+            except Exception as e:
+                print(f"Ошибка отключения: {e}")
+
+class I2C_LCD:
+    """Класс для работы с I2C LCD дисплеем"""
+    def __init__(self, i2c, addr=0x27):
+        # Можно подключить библиотеку для дисплея
+        self.i2c = i2c
+        self.addr = addr
+        # Заглушка для демонстрации
+        # Для реального проекта используйте прошивку для дисплея
+        self._init_display()
+
+    def _init_display(self):
+        print("Инициализация дисплея...")
+        # TODO: Реализуйте инициализацию дисплея,
+        # например, с помощью библиотеки lcd_api
+        pass
+
+    def clear(self):
+        # Отчистка дисплея
+        pass
+
+    def display(self, line1="", line2=""):
+        # Вывод двух строк
+        print(f"Дисплей:\n {line1}\n {line2}")
+
+class Sensors:
+    """Класс для чтения датчиков"""
+    def __init__(self):
+        self.dht22 = dht.DHT22(Pin(PIN_DHT22))
+        self.soil = ADC(Pin(PIN_SOIL_MOISTURE_ADC))
+        self.light = ADC(Pin(PIN_LIGHT_ADC))
+        self.co2 = ADC(Pin(PIN_CO2_ADC))
+        self.last_values = {
+            "temperature": None,
+            "humidity": None,
+            "soil_moisture": None,
+            "light": None,
+            "co2": None,
+        }
+
+    def read_dht(self):
+        try:
+            self.dht22.measure()
+            temp = self.dht22.temperature()
+            hum = self.dht22.humidity()
+            self.last_values["temperature"] = temp
+            self.last_values["humidity"] = hum
+        except Exception as e:
+            print(f"Ошибка DHT22: {e}")
+
+    def read_sensors(self):
+        """Читает все датчики"""
+        self.read_dht()
+        # Почва
+        soil_raw = self.soil.read_u16()
+        soil_percent = (soil_raw / 65535) * 100
+        self.last_values["soil_moisture"] = round(soil_percent, 1)
+        # Освещение
+        light_raw = self.light.read_u16()
+        light_percent = (light_raw / 65535) * 100
+        self.last_values["light"] = round(light_percent, 1)
+        # CO2 - примерная формула
+        co2_raw = self.co2.read_u16()
+        voltage = co2_raw * 3.3 / 65535
+        co2_ppm = int(400 + (voltage / 3.3) * 1600)
+        self.last_values["co2"] = max(400, min(2000, co2_ppm))
+
+        return self.last_values
+
+class RelayDevice:
+    """Общий класс для управления реле"""
+    def __init__(self, pin_number, name="Relay"):
+        self.pin = Pin(pin_number, Pin.OUT)
+        self.off()
+
+    def on(self):
+        self.pin.value(1)
+
+    def off(self):
+        self.pin.value(0)
+
+class Pump(RelayDevice):
+    """Реле для насоса"""
+    def __init__(self):
+        super().__init__(PIN_RELAY_PUMP, "Pump")
+
+class Vent(RelayDevice):
+    """Реле для вентилятора"""
+    def __init__(self):
+        super().__init__(PIN_RELAY_VENT, "Ventilator")
+
+
+# ==========================
+# Основная логика
+# ==========================
+async def control_loop():
+    """Главный цикл сбора данных и управления"""
+    # Объекты
+    wifi = WiFi(WIFI_SSID, WIFI_PASSWORD)
+    mqtt = MQTTManager(MQTT_BROKER, MQTT_PORT, MQTT_CLIENT_ID)
+    sensors = Sensors()
+    display = I2C_LCD(I2C(scl=Pin(I2C_SCL_PIN), sda=Pin(I2C_SDA_PIN)))
+    pump = Pump()
+    vent = Vent()
+
+    # Подключение
+    wifi.connect()
+    mqtt.connect()
+
+    # Основной цикл
+    while True:
+        # Чтение датчиков
+        values = sensors.read_sensors()
+
+        # Вывод данных на дисплей
+        display.display(
+            line1="T:{:.1f}C H:{:.1f}%".format(values["temperature"], values["humidity"]),
+            line2="CO2:{}ppm S:{:.1f}%".format(values["co2"], values["soil_moisture"])
+        )
+
+        # Публикация данных
+        for key, topic in MQTT_TOPICS.items():
+            if key in values:
+                mqtt.publish(topic, values[key])
+
+        # Вентилятор по температуре
+        if values["temperature"] > TEMP_HIGH_THRESHOLD:
+            vent.on()
+        elif values["temperature"] < TEMP_LOW_THRESHOLD:
+            vent.off()
+
+        # Насос по влажности почвы
+        if values["soil_moisture"] < SOIL_WATER_LOW:
+            pump.on()
+        elif values["soil_moisture"] > SOIL_WATER_HIGH:
+            pump.off()
+
+        # Проверка сообщений MQTT
+        mqtt.check()
+
+        # Ждем следующий цикл
+        await asyncio.sleep(READ_INTERVAL)
+
+# ==========================
+# Запуск
+# ==========================
+def main():
+    asyncio.run(control_loop())
+
+if __name__ == "__main__":
+    main()
